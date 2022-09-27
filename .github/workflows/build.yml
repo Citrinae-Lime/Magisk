@@ -2,17 +2,9 @@ name: Magisk Build
 
 on:
   push:
-    branches: [ master ]
-    paths:
-      - 'app/**'
-      - 'native/**'
-      - 'stub/**'
-      - 'buildSrc/**'
-      - 'build.py'
-      - 'gradle.properties'
-      - '.github/workflows/build.yml'
+    branches: [ Alpha-c97d1044 ]
   pull_request:
-    branches: [ master ]
+    branches: [ Alpha-c97d1044 ]
   workflow_dispatch:
 
 jobs:
@@ -66,18 +58,16 @@ jobs:
           key: ${{ runner.os }}-build-cache-${{ github.sha }}
           restore-keys: ${{ runner.os }}-build-cache-
 
-      - name: Set up NDK
-        run: python build.py -v ndk
-
       - name: Build release
         run: |
           ./ccache -zp
+          echo 'org.gradle.jvmargs=-Xmx3096m' >> gradle.properties
           python build.py -vr all
 
-      - name: Build debug
-        run: |
-          python build.py -v all
-          ./ccache -s
+      # - name: Build debug
+      #   run: |
+      #     python build.py -v all
+      #     ./ccache -s
 
       - name: Stop gradle daemon
         run: ./gradlew --stop

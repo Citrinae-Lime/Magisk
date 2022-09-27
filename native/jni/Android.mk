@@ -14,8 +14,7 @@ LOCAL_STATIC_LIBRARIES := \
     libsystemproperties \
     libphmap \
     libxhook \
-    libmincrypt \
-    libmagisk-rs
+    libmincrypt
 
 LOCAL_SRC_FILES := \
     core/applets.cpp \
@@ -44,7 +43,9 @@ LOCAL_SRC_FILES := \
     zygisk/memory.cpp \
     zygisk/deny/cli.cpp \
     zygisk/deny/utils.cpp \
-    zygisk/deny/revert.cpp
+    zygisk/deny/revert.cpp \
+    zygisk/deny/props.cpp \
+    zygisk/deny/proc_monitor.cpp
 
 LOCAL_LDLIBS := -llog
 
@@ -69,8 +70,7 @@ LOCAL_STATIC_LIBRARIES := \
     libbase \
     libcompat \
     libpolicy \
-    libxz \
-    libinit-rs
+    libxz
 
 LOCAL_SRC_FILES := \
     init/init.cpp \
@@ -97,8 +97,7 @@ LOCAL_STATIC_LIBRARIES := \
     libbz2 \
     libfdt \
     libz \
-    libzopfli \
-    libboot-rs
+    libzopfli
 
 LOCAL_SRC_FILES := \
     boot/main.cpp \
@@ -122,8 +121,7 @@ LOCAL_MODULE := magiskpolicy
 LOCAL_STATIC_LIBRARIES := \
     libbase \
     libbase \
-    libpolicy \
-    libpolicy-rs
+    libpolicy
 
 LOCAL_SRC_FILES := sepolicy/main.cpp
 
@@ -139,8 +137,7 @@ LOCAL_STATIC_LIBRARIES := \
     libbase \
     libcompat \
     libnanopb \
-    libsystemproperties \
-    libmagisk-rs
+    libsystemproperties
 
 LOCAL_SRC_FILES := \
     core/applet_stub.cpp \
@@ -186,7 +183,6 @@ LOCAL_SRC_FILES := \
     sepolicy/statement.cpp
 include $(BUILD_STATIC_LIBRARY)
 
-include jni/Android-rs.mk
 include jni/base/Android.mk
 include jni/external/Android.mk
 

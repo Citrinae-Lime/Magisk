@@ -22,7 +22,7 @@ android {
     namespace = "com.topjohnwu.magisk"
 
     defaultConfig {
-        applicationId = "com.topjohnwu.magisk"
+        applicationId = "io.github.vvb2060.magisk"
         vectorDrawables.useSupportLibrary = true
         versionName = Config.version
         versionCode = Config.versionCode
@@ -77,6 +77,7 @@ dependencies {
     implementation("dev.rikka.rikkax.insets:insets:1.2.0")
     implementation("dev.rikka.rikkax.recyclerview:recyclerview-ktx:1.3.1")
     implementation("io.noties.markwon:core:4.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.2")
 
     val vLibsu = "5.0.2"
     implementation("com.github.topjohnwu.libsu:core:${vLibsu}")
@@ -88,7 +89,7 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-moshi:${vRetrofit}")
     implementation("com.squareup.retrofit2:converter-scalars:${vRetrofit}")
 
-    val vOkHttp = "4.9.3"
+    val vOkHttp = "4.10.0"
     implementation("com.squareup.okhttp3:okhttp:${vOkHttp}")
     implementation("com.squareup.okhttp3:logging-interceptor:${vOkHttp}")
     implementation("com.squareup.okhttp3:okhttp-dnsoverhttps:${vOkHttp}")
@@ -102,9 +103,13 @@ dependencies {
     implementation("androidx.room:room-ktx:${vRoom}")
     kapt("androidx.room:room-compiler:${vRoom}")
 
-    val vNav = "2.5.0-rc01"
+    val vNav = "2.5.0"
     implementation("androidx.navigation:navigation-fragment-ktx:${vNav}")
     implementation("androidx.navigation:navigation-ui-ktx:${vNav}")
+
+    val vAppCenter = "4.4.5"
+    implementation("com.microsoft.appcenter:appcenter-analytics:${vAppCenter}")
+    implementation("com.microsoft.appcenter:appcenter-crashes:${vAppCenter}")
 
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")

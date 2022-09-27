@@ -17,6 +17,17 @@ using namespace std;
 
 void *self_handle = nullptr;
 
+static int zygisk_log(int prio, const char *fmt, va_list ap);
+
+#define zlog(prio) [](auto fmt, auto ap){ return zygisk_log(ANDROID_LOG_##prio, fmt, ap); }
+static void zygisk_logging() {
+    log_cb.d = zlog(DEBUG);
+    log_cb.i = zlog(INFO);
+    log_cb.w = zlog(WARN);
+    log_cb.e = zlog(ERROR);
+    log_cb.ex = nop_ex;
+}
+
 // Make sure /proc/self/environ is sanitized
 // Filter env and reset MM_ENV_END
 static void sanitize_environ() {
@@ -103,7 +114,7 @@ static void zygisk_init() {
 
 // The following code runs in zygote/app process
 
-extern "C" void zygisk_log_write(int prio, const char *msg, int len) {
+static int zygisk_log(int prio, const char *fmt, va_list ap) {
     // If we don't have log pipe set, ask magiskd for it
     // This could happen multiple times in zygote because it was closed to prevent crashing
     if (logd_fd < 0) {
@@ -128,17 +139,13 @@ extern "C" void zygisk_log_write(int prio, const char *msg, int len) {
         sigaddset(&mask, SIGPIPE);
         pthread_sigmask(SIG_BLOCK, &mask, &orig_mask);
     }
-    magisk_log_write(prio, msg, len);
+    int ret = magisk_log(prio, fmt, ap);
     if (sig) {
         timespec ts{};
         sigtimedwait(&mask, nullptr, &ts);
         pthread_sigmask(SIG_SETMASK, &orig_mask, nullptr);
     }
-}
-
-static inline bool should_load_modules(uint32_t flags) {
-    return (flags & UNMOUNT_MASK) != UNMOUNT_MASK &&
-           (flags & PROCESS_IS_MAGISK_APP) != PROCESS_IS_MAGISK_APP;
+    return ret;
 }
 
 int remote_get_info(int uid, const char *process, uint32_t *flags, vector<int> &fds) {
@@ -146,7 +153,7 @@ int remote_get_info(int uid, const char *process, uint32_t *flags, vector<int> &
         write_int(fd, uid);
         write_string(fd, process);
         xxread(fd, flags, sizeof(*flags));
-        if (should_load_modules(*flags)) {
+        if ((*flags & UNMOUNT_MASK) != UNMOUNT_MASK) {
             fds = recv_fds(fd);
         }
         return fd;
@@ -307,7 +314,7 @@ static void get_process_info(int client, const sock_cred *cred) {
     }
     int manager_app_id = get_manager();
     if (to_app_id(uid) == manager_app_id) {
-        flags |= PROCESS_IS_MAGISK_APP;
+        flags |= PROCESS_IS_MAGISK_APP | PROCESS_GRANTED_ROOT;
     }
     if (denylist_enforced) {
         flags |= DENYLIST_ENFORCING;
@@ -318,7 +325,7 @@ static void get_process_info(int client, const sock_cred *cred) {
 
     xwrite(client, &flags, sizeof(flags));
 
-    if (should_load_modules(flags)) {
+    if ((flags & UNMOUNT_MASK) != UNMOUNT_MASK) {
         char buf[256];
         get_exe(cred->pid, buf, sizeof(buf));
         vector<int> fds = get_module_fds(str_ends(buf, "64"));

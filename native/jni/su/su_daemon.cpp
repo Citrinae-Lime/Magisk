@@ -311,7 +311,7 @@ void su_daemon_handler(int client, const sock_cred *cred) {
     LOGD("su: fork handler\n");
 
     // Abort upon any error occurred
-    exit_on_error(true);
+    log_cb.ex = exit;
 
     // ack
     write_int(client, 0);

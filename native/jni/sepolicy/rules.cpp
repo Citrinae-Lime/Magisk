@@ -6,7 +6,8 @@ using namespace std;
 
 void sepolicy::magisk_rules() {
     // Temp suppress warnings
-    set_log_level_state(LogLevel::Warn, false);
+    auto bak = log_cb.w;
+    log_cb.w = nop_log;
 
     // This indicates API 26+
     bool new_rules = exists("untrusted_app_25");
@@ -195,5 +196,5 @@ void sepolicy::magisk_rules() {
     impl->strip_dontaudit();
 #endif
 
-    set_log_level_state(LogLevel::Warn, true);
+    log_cb.w = bak;
 }

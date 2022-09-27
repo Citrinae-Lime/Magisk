@@ -8,7 +8,6 @@
 #include <functional>
 
 #include <socket.hpp>
-#include <core-rs.hpp>
 
 #define AID_ROOT   0
 #define AID_SHELL  2000
@@ -81,7 +80,8 @@ void exec_task(std::function<void()> &&task);
 
 // Logging
 extern std::atomic<int> logd_fd;
-extern "C" void magisk_log_write(int prio, const char *msg, int len);
+int magisk_log(int prio, const char *fmt, va_list ap);
+void android_logging();
 
 // Daemon handlers
 void post_fs_data(int client);
@@ -105,3 +105,4 @@ void prune_su_access();
 extern std::atomic_flag skip_pkg_rescan;
 void initialize_denylist();
 int denylist_cli(int argc, char **argv);
+void reset_sensitive_props();

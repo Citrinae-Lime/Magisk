@@ -15,8 +15,7 @@ LOCAL_SRC_FILES := \
     selinux.cpp \
     logging.cpp \
     xwrap.cpp \
-    stream.cpp \
-    ../external/cxx-rs/src/cxx.cc
+    stream.cpp
 include $(BUILD_STATIC_LIBRARY)
 
 # All static executables should link with libcompat
@@ -25,7 +24,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libcompat
 # Workaround "hacky" libc.a missing symbols
 # To build Magisk with vanilla NDK, comment out the next line
-LOCAL_SRC_FILES := compat/compat.cpp
+# LOCAL_SRC_FILES := compat/compat.cpp
 # Fix static variables' ctor/dtor when using LTO
 # See: https://github.com/android/ndk/issues/1461
 LOCAL_EXPORT_LDLIBS := -static -T jni/lto_fix.lds

@@ -1,5 +1,6 @@
 package com.topjohnwu.magisk.ui.install
 
+import android.content.res.Resources
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
@@ -34,7 +35,7 @@ import java.io.File
 import java.io.IOException
 
 class InstallViewModel(
-    svc: NetworkService
+    private val resources: Resources
 ) : BaseViewModel() {
 
     val isRooted get() = Info.isRooted
@@ -71,16 +72,8 @@ class InstallViewModel(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val file = File(AppContext.cacheDir, "${BuildConfig.VERSION_CODE}.md")
-                val text = when {
-                    file.exists() -> file.readText()
-                    Const.Url.CHANGELOG_URL.isEmpty() -> ""
-                    else -> {
-                        val str = svc.fetchString(Const.Url.CHANGELOG_URL)
-                        file.writeText(str)
-                        str
-                    }
-                }
+                val text = resources.openRawResource(R.raw.changelog)
+                    .bufferedReader().use { it.readText() }
                 notes = ServiceLocator.markwon.toMarkdown(text)
             } catch (e: IOException) {
                 Timber.e(e)

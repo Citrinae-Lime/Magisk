@@ -3,6 +3,7 @@ package com.topjohnwu.magisk.core
 import android.os.Build
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.topjohnwu.magisk.BuildConfig
 import com.topjohnwu.magisk.StubApk
 import com.topjohnwu.magisk.core.di.AppContext
 import com.topjohnwu.magisk.core.model.UpdateInfo
@@ -10,6 +11,7 @@ import com.topjohnwu.magisk.core.repository.NetworkService
 import com.topjohnwu.magisk.core.utils.net.NetworkObserver
 import com.topjohnwu.magisk.ktx.getProperty
 import com.topjohnwu.superuser.ShellUtils.fastCmd
+import java.util.*
 
 val isRunningAsStub get() = Info.stub != null
 
@@ -49,6 +51,25 @@ object Info {
                 remote = EMPTY_REMOTE
                 field.postValue(it)
             }
+        }
+    }
+
+    val constInfo by lazy {
+        HashMap<String, String>().apply {
+            put("stub", isRunningAsStub.toString())
+            put("runningVer", env.versionString)
+            put("runningVerCode", env.versionCode.toString())
+            put("root", isRooted.toString())
+            put("appVer", BuildConfig.VERSION_NAME)
+            put("appVerCode", BuildConfig.VERSION_CODE.toString())
+            put("zygisk", isZygiskEnabled.toString())
+            put("isSAR", isSAR.toString())
+            put("isAB", isAB.toString())
+            put("crypto", crypto)
+            put("ramdisk", ramdisk.toString())
+            put("noDataExec", noDataExec.toString())
+            put("isEmulator", isEmulator.toString())
+            put("supportedABIs", Arrays.toString(Build.SUPPORTED_ABIS))
         }
     }
 

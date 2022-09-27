@@ -12,7 +12,7 @@ import subprocess
 import sys
 import textwrap
 import urllib.request
-import tarfile
+import zipfile
 
 
 def error(str):
@@ -58,17 +58,13 @@ except FileNotFoundError:
 
 cpu_count = multiprocessing.cpu_count()
 archs = ['armeabi-v7a', 'x86', 'arm64-v8a', 'x86_64']
-triples = ['armv7a-linux-androideabi', 'i686-linux-android', 'aarch64-linux-android', 'x86_64-linux-android']
 default_targets = ['magisk', 'magiskinit', 'magiskboot', 'magiskpolicy', 'busybox']
 support_targets = default_targets + ['resetprop', 'test']
-rust_targets = ['magisk', 'magiskinit', 'magiskboot', 'magiskpolicy']
 
 sdk_path = os.environ['ANDROID_SDK_ROOT']
 ndk_root = op.join(sdk_path, 'ndk')
-ndk_path = op.join(ndk_root, 'magisk')
+ndk_path = op.join(ndk_root, '25.0.8775105')
 ndk_build = op.join(ndk_path, 'ndk-build')
-rust_bin = op.join(ndk_path, 'toolchains', 'rust', 'bin')
-cargo = op.join(rust_bin, 'cargo' + EXE_EXT)
 gradlew = op.join('.', 'gradlew' + ('.bat' if is_windows else ''))
 adb_path = op.join(sdk_path, 'platform-tools', 'adb' + EXE_EXT)
 native_gen_path = op.realpath(op.join('native', 'out', 'generated'))
@@ -216,69 +212,11 @@ def run_ndk_build(flags):
         error('Build binary failed!')
     os.chdir('..')
     for arch in archs:
+        mkdir_p(op.join('native', 'out', arch))
         for tgt in support_targets + ['libpreload.so']:
             source = op.join('native', 'libs', arch, tgt)
             target = op.join('native', 'out', arch, tgt)
             mv(source, target)
-
-
-def run_cargo_build(args):
-    os.chdir(op.join('native', 'rust'))
-    targets = set(args.target) & set(rust_targets)
-
-    env = os.environ.copy()
-    env['CARGO_BUILD_RUSTC'] = op.join(rust_bin, 'rustc' + EXE_EXT)
-
-    # Install cxxbridge and generate C++ bindings
-    native_out = op.join('..', '..', 'native', 'out')
-    local_cargo_root = op.join(native_out, '.cargo')
-    mkdir_p(local_cargo_root)
-    cmds = [cargo, 'install', '--root', local_cargo_root, 'cxxbridge-cmd']
-    if not args.verbose:
-        cmds.append('-q')
-    proc = execv(cmds, env)
-    if proc.returncode != 0:
-        error('cxxbridge-cmd installation failed!')
-    cxxbridge = op.join(local_cargo_root, 'bin', 'cxxbridge' + EXE_EXT)
-    mkdir(native_gen_path)
-    for p in ['base', 'boot', 'core', 'init', 'sepolicy']:
-        text = cmd_out([cxxbridge, op.join(p, 'src', 'lib.rs')])
-        write_if_diff(op.join(native_gen_path, f'{p}-rs.cpp'), text)
-        text = cmd_out([cxxbridge, '--header', op.join(p, 'src', 'lib.rs')])
-        write_if_diff(op.join(native_gen_path, f'{p}-rs.hpp'), text)
-
-    # Start building the actual build commands
-    cmds = [cargo, 'build', '-Z', 'build-std=std,panic_abort',
-           '-Z', 'build-std-features=panic_immediate_abort']
-    for target in targets:
-        cmds.append('-p')
-        cmds.append(target)
-    rust_out = 'debug'
-    if args.release:
-        cmds.append('-r')
-        rust_out = 'release'
-    if not args.verbose:
-        cmds.append('-q')
-
-    os_name = platform.system().lower()
-    llvm_bin = op.join(ndk_path, 'toolchains', 'llvm', 'prebuilt', f'{os_name}-x86_64', 'bin')
-    env['TARGET_CC'] = op.join(llvm_bin, 'clang' + EXE_EXT)
-    env['RUSTFLAGS'] = '-Clinker-plugin-lto'
-    for (arch, triple) in zip(archs, triples):
-        env['TARGET_CFLAGS'] = f'--target={triple}21'
-        rust_triple = 'thumbv7neon-linux-androideabi' if triple.startswith('armv7') else triple
-        proc = execv([*cmds, '--target', rust_triple], env)
-        if proc.returncode != 0:
-            error('Build binary failed!')
-
-        arch_out = op.join(native_out, arch)
-        mkdir(arch_out)
-        for tgt in targets:
-            source = op.join('target', rust_triple, rust_out, f'lib{tgt}.a')
-            target = op.join(arch_out, f'lib{tgt}-rs.a')
-            mv(source, target)
-
-    os.chdir(op.join('..', '..'))
 
 
 def write_if_diff(file_name, text):
@@ -324,13 +262,6 @@ def dump_flag_header():
 
 
 def build_binary(args):
-    # Verify NDK install
-    try:
-        with open(op.join(ndk_path, 'ONDK_VERSION'), 'r') as ondk_ver:
-            assert ondk_ver.read().strip(' \t\r\n') == config['ondkVersion']
-    except:
-        error('Unmatched NDK. Please install/upgrade NDK with "build.py ndk"')
-
     if 'target' not in vars(args):
         vars(args)['target'] = []
 
@@ -342,8 +273,6 @@ def build_binary(args):
         args.target = default_targets
 
     header('* Building binaries: ' + ' '.join(args.target))
-
-    run_cargo_build(args)
 
     dump_flag_header()
 
@@ -421,39 +350,10 @@ def cleanup(args):
         rm_rf(op.join('native', 'out'))
         rm_rf(op.join('native', 'libs'))
         rm_rf(op.join('native', 'obj'))
-        rm_rf(op.join('native', 'rust', 'target'))
 
     if 'java' in args.target:
         header('* Cleaning java')
         execv([gradlew, 'clean'])
-
-
-def setup_ndk(args):
-    os_name = platform.system().lower()
-    ndk_ver = config['ondkVersion']
-    url = f'https://github.com/topjohnwu/ondk/releases/download/{ndk_ver}/ondk-{ndk_ver}-{os_name}.tar.gz'
-    ndk_archive = url.split('/')[-1]
-
-    header(f'* Downloading and extracting {ndk_archive}')
-    with urllib.request.urlopen(url) as response:
-        with tarfile.open(mode='r|gz', fileobj=response) as tar:
-            tar.extractall(ndk_root)
-
-    rm_rf(ndk_path)
-    mv(op.join(ndk_root, f'ondk-{ndk_ver}'), ndk_path)
-
-    header('* Patching static libs')
-    for target in ['aarch64-linux-android', 'arm-linux-androideabi',
-                   'i686-linux-android', 'x86_64-linux-android']:
-        arch = target.split('-')[0]
-        lib_dir = op.join(
-            ndk_path, 'toolchains', 'llvm', 'prebuilt', f'{os_name}-x86_64',
-            'sysroot', 'usr', 'lib', f'{target}', '21')
-        if not op.exists(lib_dir):
-            continue
-        src_dir = op.join('tools', 'ndk-bins', '21', arch)
-        rm(op.join(src_dir, '.DS_Store'))
-        shutil.copytree(src_dir, lib_dir, copy_function=cp, dirs_exist_ok=True)
 
 
 def setup_avd(args):
@@ -565,9 +465,6 @@ clean_parser = subparsers.add_parser('clean', help='cleanup')
 clean_parser.add_argument(
     'target', nargs='*', help='native, java, or empty to clean both')
 clean_parser.set_defaults(func=cleanup)
-
-ndk_parser = subparsers.add_parser('ndk', help='setup Magisk NDK')
-ndk_parser.set_defaults(func=setup_ndk)
 
 if len(sys.argv) == 1:
     parser.print_help()

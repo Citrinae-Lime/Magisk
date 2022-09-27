@@ -33,6 +33,7 @@
 # Excessive obfuscation
 -repackageclasses 'a'
 -allowaccessmodification
+-keepattributes SourceFile,LineNumberTable
 
 -obfuscationdictionary ../dict.txt
 -classobfuscationdictionary ../dict.txt

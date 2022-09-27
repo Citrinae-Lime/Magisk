@@ -45,7 +45,7 @@ fun Project.setupCommon() {
     androidBase {
         compileSdkVersion(32)
         buildToolsVersion = "32.0.0"
-        ndkPath = "$sdkDirectory/ndk/magisk"
+        ndkVersion = "25.0.8775105"
 
         defaultConfig {
             minSdk = 21
@@ -137,7 +137,7 @@ private fun Project.setupAppCommon() {
         val variantCapped = name.capitalize(Locale.ROOT)
         tasks.getByPath(":$projectName:package$variantCapped").doLast {
             val apk = outputs.files.asFileTree.filter { it.name.endsWith(".apk") }.singleFile
-            val comment = "version=${Config.version}\nversionCode=${Config.versionCode}"
+            val comment = "${Config.versionCode}\u0000version=${Config.version}\nversionCode=${Config.versionCode}"
             addComment(apk, signingConfig, android.defaultConfig.minSdk!!, comment)
         }
     }

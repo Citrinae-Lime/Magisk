@@ -73,6 +73,7 @@ object Config : PreferenceConfig, DBConfig {
         const val CUSTOM_CHANNEL = 2
         const val CANARY_CHANNEL = 3
         const val DEBUG_CHANNEL = 4
+        const val ALPHA_CHANNEL = 5
 
         // root access mode
         const val ROOT_ACCESS_DISABLED = 0
@@ -129,7 +130,7 @@ object Config : PreferenceConfig, DBConfig {
     var suDefaultTimeout by preferenceStrInt(Key.SU_REQUEST_TIMEOUT, 10)
     var suAutoResponse by preferenceStrInt(Key.SU_AUTO_RESPONSE, Value.SU_PROMPT)
     var suNotification by preferenceStrInt(Key.SU_NOTIFICATION, Value.NOTIFICATION_TOAST)
-    var updateChannel by preferenceStrInt(Key.UPDATE_CHANNEL, defaultChannel)
+    var updateChannel by preferenceStrInt(Key.UPDATE_CHANNEL, Value.ALPHA_CHANNEL)
 
     var safetyNotice by preference(Key.SAFETY, true)
     var darkTheme by preference(Key.DARK_THEME, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
@@ -158,6 +159,17 @@ object Config : PreferenceConfig, DBConfig {
     var suManager by dbStrings(Key.SU_MANAGER, "", true)
     var keyStoreRaw by dbStrings(Key.KEYSTORE, "", true)
 
+    val allDbSettings
+        get() = HashMap<String, String>().apply {
+            put("rootMode", rootMode.toString())
+            put("suMntNamespaceMode", suMntNamespaceMode.toString())
+            put("suMultiuserMode", suMultiuserMode.toString())
+            put("suBiometric", suBiometric.toString())
+            put("zygisk", zygisk.toString())
+            put("denyList", denyList.toString())
+            put("hasGMS", Info.hasGMS.toString())
+        }
+
     private const val SU_FINGERPRINT = "su_fingerprint"
 
     fun load(pkg: String?) {
@@ -173,11 +185,9 @@ object Config : PreferenceConfig, DBConfig {
             if (prefs.getBoolean(SU_FINGERPRINT, false))
                 suBiometric = true
             remove(SU_FINGERPRINT)
-            prefs.getString(Key.UPDATE_CHANNEL, null).also {
-                if (it == null ||
-                    it.toInt() > Value.DEBUG_CHANNEL ||
-                    it.toInt() < Value.DEFAULT_CHANNEL) {
-                    putString(Key.UPDATE_CHANNEL, defaultChannel.toString())
+            prefs.getString(Key.UPDATE_CHANNEL, Value.DEFAULT_CHANNEL.toString()).also {
+                if (it != Value.CUSTOM_CHANNEL.toString() || it != Value.ALPHA_CHANNEL.toString()) {
+                    putString(Key.UPDATE_CHANNEL, Value.ALPHA_CHANNEL.toString())
                 }
             }
         }
